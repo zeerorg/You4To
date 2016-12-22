@@ -41,6 +41,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     private SimpleExoPlayer player;
     private int position;
     private static boolean running = false;
+    private static boolean playback = false;
 
     @Override
     public void onCreate() {
@@ -65,6 +66,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.e("Service", "Ended");
     }
 
     public PlayerService() {
@@ -89,7 +91,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     /** method for clients */
     public void addSongJson(JSONObject js){
         json.add(js);
-
+        Log.e("Service", "SOng Added");
     }
 
     public static boolean isRunning(){
@@ -97,6 +99,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     }
 
     public void startPlayback(){
+        playback = true;
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
 // Produces DataSource instances through which media data is loaded.
         DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(this,
@@ -115,6 +118,10 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         //ConcatenatingMediaSource audioList = new ConcatenatingMediaSource(videoSource);
 // Prepare the player with the source.
         player.prepare(videoSource);
+    }
+
+    public static boolean isPlaying(){
+        return playback;
     }
 
 

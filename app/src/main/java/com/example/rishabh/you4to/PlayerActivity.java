@@ -59,6 +59,8 @@ public class PlayerActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
+        Intent intent = new Intent(this, PlayerService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
         queue = Volley.newRequestQueue(this);
         json = new ArrayList<>();
@@ -66,19 +68,19 @@ public class PlayerActivity extends AppCompatActivity
         if (player != null)
             player.release();
 
-        Handler mainHandler = new Handler();
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        TrackSelection.Factory videoTrackSelectionFactory =
-                new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
-        TrackSelector trackSelector =
-                new DefaultTrackSelector(mainHandler, videoTrackSelectionFactory);
-
-        LoadControl loadControl = new DefaultLoadControl();
-
-        player = ExoPlayerFactory.newSimpleInstance(this, trackSelector, loadControl);
-        player.setPlayWhenReady(true);
-        playerView = ((PlaybackControlView) findViewById(R.id.player_view));
-        playerView.setPlayer(player);
+//        Handler mainHandler = new Handler();
+//        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+//        TrackSelection.Factory videoTrackSelectionFactory =
+//                new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
+//        TrackSelector trackSelector =
+//                new DefaultTrackSelector(mainHandler, videoTrackSelectionFactory);
+//
+//        LoadControl loadControl = new DefaultLoadControl();
+//
+//        player = ExoPlayerFactory.newSimpleInstance(this, trackSelector, loadControl);
+//        player.setPlayWhenReady(true);
+//        playerView = ((PlaybackControlView) findViewById(R.id.player_view));
+//        playerView.setPlayer(player);
         queue.add(getServerData(getIntent().getExtras().getString(Intent.EXTRA_TEXT)));
     }
 
@@ -128,7 +130,6 @@ public class PlayerActivity extends AppCompatActivity
         }
 
         JSONObject passJS = json.get(json.size()-1);
-        Intent intent = new Intent(this, PlayerService.class);
 //        Iterator<String> keys = passJS.keys();
 //        while(keys.hasNext()){
 //            String key = keys.next();
@@ -138,34 +139,30 @@ public class PlayerActivity extends AppCompatActivity
 //                e.printStackTrace();
 //            }
 //        }
-        if(!mBound) {
-            if (PlayerService.isRunning()) {
-                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            if (PlayerService.isPlaying()) {
                 mService.addSongJson(passJS);
+                //mService.startPlayback();
             } else {
-                startService(intent);
-                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-                if(mBound)  Log.e("Bounded", "True");
                 mService.addSongJson(passJS);
                 mService.startPlayback();
             }
-        }
 
 
-        // Measures bandwidth during playback. Can be null if not required.
-        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-// Produces DataSource instances through which media data is loaded.
-        DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(this,
-                Util.getUserAgent(this, "You4To"), bandwidthMeter);
-// Produces Extractor instances for parsing the media data.
-        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
-// This is the MediaSource representing the media to be played.
-        MediaSource videoSource = new ExtractorMediaSource(uri,
-                dataSourceFactory, extractorsFactory, null, null);
 
-        //ConcatenatingMediaSource audioList = new ConcatenatingMediaSource(videoSource);
-// Prepare the player with the source.
-        player.prepare(videoSource);
+//        // Measures bandwidth during playback. Can be null if not required.
+//        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+//// Produces DataSource instances through which media data is loaded.
+//        DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(this,
+//                Util.getUserAgent(this, "You4To"), bandwidthMeter);
+//// Produces Extractor instances for parsing the media data.
+//        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
+//// This is the MediaSource representing the media to be played.
+//        MediaSource videoSource = new ExtractorMediaSource(uri,
+//                dataSourceFactory, extractorsFactory, null, null);
+//
+//        //ConcatenatingMediaSource audioList = new ConcatenatingMediaSource(videoSource);
+//// Prepare the player with the source.
+//        player.prepare(videoSource);
     }
 
     // Response.ErrorListener override
@@ -183,6 +180,7 @@ public class PlayerActivity extends AppCompatActivity
             PlayerService.LocalBinder binder = (PlayerService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            if(mBound)  Log.e("Bounded", "True");
         }
 
         @Override
