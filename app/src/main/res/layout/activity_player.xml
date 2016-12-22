@@ -18,7 +18,7 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="59dp"
-        android:id="@+id/jsonDisplay" />
+        android:id="@+id/Title" />
 
     <com.google.android.exoplayer2.ui.PlaybackControlView
         android:id="@+id/player_view"

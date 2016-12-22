@@ -10,6 +10,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -17,8 +18,8 @@ import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
 
-    DrawerLayout drawer;
-    NavigationView navigationView;
+    private DrawerLayout drawer;
+    private NavigationView navigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,10 +27,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         setContentView(R.layout.drawer_container);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("You4To");
         setSupportActionBar(toolbar);
-
-        // TODO: make activities into fragments
-        Fragment fragment = new AddLinkFragment();
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
 
@@ -41,13 +40,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView = (NavigationView) findViewById(R.id.drawer_navigation);
         navigationView.setNavigationItemSelectedListener(this);
 
-        // Initially load the main fragment
-        Bundle args = new Bundle();
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.content_frame, fragment)
-                .commit();
+        Intent intent = getIntent();
+        Log.e("Intent", intent.toString());
+        if(intent.hasExtra(Intent.EXTRA_TEXT)){
+            navigationView.getMenu().getItem(1).setChecked(true);
+            Bundle args = new Bundle();
+            args.putString(Intent.EXTRA_TEXT, intent.getStringExtra(Intent.EXTRA_TEXT));
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            Fragment fragment = new PlayerFragment();
+            fragment.setArguments(args);
+            fragmentManager.beginTransaction()
+                    .replace(R.id.content_frame, fragment)
+                    .commit();
+        }
+        else {
+            onNavigationItemSelected(navigationView.getMenu().getItem(0));
+        }
     }
 
     @Override
@@ -85,15 +93,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         int id = item.getItemId();
-        selectItem(id);
-        item.setChecked(true);
-        drawer.closeDrawers();
-        return true;
-    }
-
-    private void selectItem(int i) {
-
-        if (i == R.id.add_link) {
+        //selectItem(id);
+        if (id == R.id.add_link) {
             Fragment fragment = new AddLinkFragment();
             Bundle args = new Bundle();
             FragmentManager fragmentManager = getSupportFragmentManager();
@@ -110,9 +111,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     .replace(R.id.content_frame, fragment)
                     .commit();
         }
+        item.setChecked(true);
+        drawer.closeDrawers();
+        return true;
     }
 
-    public interface FragmentInterface {
-        void addQueue(String url);
+    public NavigationView getNavigationView(){
+        return navigationView;
     }
 }

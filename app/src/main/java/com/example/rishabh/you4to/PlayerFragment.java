@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -30,19 +32,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PlayerFragment extends Fragment
-        implements Response.Listener<String>, Response.ErrorListener, MainActivity.FragmentInterface {
+        implements Response.Listener<String>, Response.ErrorListener, View.OnClickListener{
 
     private RequestQueue queue;
+    private View v;
     private JSONObject json;
     private PlaybackControlView playerView;
     private PlayerService mService;
     private boolean mBound = false;
+    private TextView title;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.activity_player, container, false);
+        v = inflater.inflate(R.layout.activity_player, container, false);
         playerView = (PlaybackControlView) v.findViewById(R.id.player_view);
+        title = (TextView) v.findViewById(R.id.Title);
         playerView.setShowDurationMs(0);
 
         Intent intent = new Intent(getContext(), PlayerService.class);
@@ -99,12 +104,16 @@ public class PlayerFragment extends Fragment
             mService.addSongJson(json);
             mService.startPlayback();
         }
+        title.setText(mService.getTitle());
     }
 
     /** Response.ErrorListener override*/
     @Override
     public void onErrorResponse(VolleyError error) {
         Log.e("Response", error.toString());
+        Snackbar.make(v, error.toString(), Snackbar.LENGTH_LONG)
+                .setAction("Retry", this)
+                .show();
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -116,6 +125,7 @@ public class PlayerFragment extends Fragment
             mService = binder.getService();
             mBound = true;
             playerView.setPlayer(mService.getPlayer());
+            title.setText(mService.getTitle());
         }
 
         @Override
@@ -125,7 +135,7 @@ public class PlayerFragment extends Fragment
     };
 
     @Override
-    public void addQueue(String url) {
-        queue.add(getServerData(url));
+    public void onClick(View view) {
+        queue.add(getServerData(getArguments().getString(Intent.EXTRA_TEXT)));
     }
 }

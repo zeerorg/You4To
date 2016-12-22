@@ -67,6 +67,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     public void onDestroy() {
         super.onDestroy();
         Log.e("Service", "Ended");
+        player.release();
     }
 
     public PlayerService() {
@@ -127,6 +128,17 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         return player;
     }
 
+    public String getTitle(){
+        try {
+            return json.get(position).getString("title");
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IndexOutOfBoundsException e) {
+            return "Title";
+        }
+    }
+
     /** ExoPlayer events */
 
     @Override
@@ -140,8 +152,8 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
             position += 1;
             if(position == json.size()){
                 Log.e("Service", "Finished playback");
-                player.release();
-                stopSelf();
+                playback = false;
+                player.stop();
             } else {
                 Log.e("Service", "Track Change");
                 startPlayback();
