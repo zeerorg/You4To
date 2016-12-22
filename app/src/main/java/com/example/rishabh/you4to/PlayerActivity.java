@@ -1,12 +1,15 @@
 package com.example.rishabh.you4to;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -20,12 +23,14 @@ import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
+import com.google.android.exoplayer2.source.ConcatenatingMediaSource;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
+import com.google.android.exoplayer2.ui.PlaybackControlView;
 import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
@@ -35,15 +40,20 @@ import com.google.android.exoplayer2.util.Util;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
-public class PlayerActivity extends AppCompatActivity {
+public class PlayerActivity extends AppCompatActivity
+        implements Response.Listener<String>, Response.ErrorListener {
 
     private RequestQueue queue;
-    private JSONObject json;
+    private ArrayList<JSONObject> json;
     private SimpleExoPlayer player;
-    private SimpleExoPlayerView playerView;
+    private PlaybackControlView playerView;
+    private PlayerService mService;
+    private boolean mBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,62 +61,10 @@ public class PlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_player);
 
         queue = Volley.newRequestQueue(this);
-        JSONObject params = new JSONObject();
-        try {
-            params.put("link", getIntent().getExtras().getString(Intent.EXTRA_TEXT));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        json = new ArrayList<>();
 
-        StringRequest jsonRequest = new StringRequest(Request.Method.POST,
-                "https://you4to.herokuapp.com/api/get",
-                //"http://httpbin.org/post",
-                new Response.Listener<String>() {
-
-                    @Override
-                    public void onResponse(String response) {
-                        Log.e("Request complete", response);
-                        //jsonDisplay.setText("Response: " + response.toString());
-                        try {
-                            json = new JSONObject(response);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        Uri uri;
-                        try {
-                            uri = Uri.parse(json.getString("download_music"));
-                        } catch (JSONException e) {
-                            uri = null;
-                            e.printStackTrace();
-                        }
-                        // Measures bandwidth during playback. Can be null if not required.
-                        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-// Produces DataSource instances through which media data is loaded.
-                        DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(PlayerActivity.this,
-                                Util.getUserAgent(PlayerActivity.this, "yourApplicationName"), bandwidthMeter);
-// Produces Extractor instances for parsing the media data.
-                        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
-// This is the MediaSource representing the media to be played.
-                        MediaSource videoSource = new ExtractorMediaSource(uri,
-                                dataSourceFactory, extractorsFactory, null, null);
-// Prepare the player with the source.
-                        player.prepare(videoSource);
-                    }
-                }, new Response.ErrorListener() {
-
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                // TODO Auto-generated method stub
-            }
-        }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("link", getIntent().getExtras().getString(Intent.EXTRA_TEXT));
-                return params;
-            }
-        };
-        queue.add(jsonRequest);
+        if (player != null)
+            player.release();
 
         Handler mainHandler = new Handler();
         BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
@@ -115,26 +73,121 @@ public class PlayerActivity extends AppCompatActivity {
         TrackSelector trackSelector =
                 new DefaultTrackSelector(mainHandler, videoTrackSelectionFactory);
 
-// 2. Create a default LoadControl
         LoadControl loadControl = new DefaultLoadControl();
 
-// 3. Create the player
         player = ExoPlayerFactory.newSimpleInstance(this, trackSelector, loadControl);
         player.setPlayWhenReady(true);
-        playerView = ((SimpleExoPlayerView) findViewById(R.id.player_view));
+        playerView = ((PlaybackControlView) findViewById(R.id.player_view));
         playerView.setPlayer(player);
-
+        queue.add(getServerData(getIntent().getExtras().getString(Intent.EXTRA_TEXT)));
     }
 
-    private void getServerData(){
+    private StringRequest getServerData(String getUrl) {
 
+        final String url = getUrl;
+
+        StringRequest jsonRequest = new StringRequest(Request.Method.POST,
+                "https://you4to.herokuapp.com/api/get",
+                this, this) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("link", url);
+                return params;
+            }
+        };
+
+        return jsonRequest;
     }
 
     @Override
     protected void onDestroy() {
-        super.onStop();
-        player.release();
+        super.onDestroy();
+        if (mBound) {
+            unbindService(mConnection);
+            mBound = false;
+        }
+        //player.release();
     }
 
+    // Response.Listener override
+    @Override
+    public void onResponse(String response) {
+        Log.e("Request complete", response);
+        try {
+            json.add(new JSONObject(response));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Uri uri;
+        try {
+            uri = Uri.parse(json.get(json.size() - 1).getString("download_music"));
+        } catch (JSONException e) {
+            uri = null;
+            e.printStackTrace();
+        }
 
+        JSONObject passJS = json.get(json.size()-1);
+        Intent intent = new Intent(this, PlayerService.class);
+//        Iterator<String> keys = passJS.keys();
+//        while(keys.hasNext()){
+//            String key = keys.next();
+//            try {
+//                intent.putExtra(key, passJS.getString(key));
+//            } catch (JSONException e) {
+//                e.printStackTrace();
+//            }
+//        }
+        if(!mBound) {
+            if (PlayerService.isRunning()) {
+                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+                mService.addSongJson(passJS);
+            } else {
+                startService(intent);
+                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+                if(mBound)  Log.e("Bounded", "True");
+                mService.addSongJson(passJS);
+                mService.startPlayback();
+            }
+        }
+
+
+        // Measures bandwidth during playback. Can be null if not required.
+        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+// Produces DataSource instances through which media data is loaded.
+        DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(this,
+                Util.getUserAgent(this, "You4To"), bandwidthMeter);
+// Produces Extractor instances for parsing the media data.
+        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
+// This is the MediaSource representing the media to be played.
+        MediaSource videoSource = new ExtractorMediaSource(uri,
+                dataSourceFactory, extractorsFactory, null, null);
+
+        //ConcatenatingMediaSource audioList = new ConcatenatingMediaSource(videoSource);
+// Prepare the player with the source.
+        player.prepare(videoSource);
+    }
+
+    // Response.ErrorListener override
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        Log.e("Response", error.toString());
+    }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            PlayerService.LocalBinder binder = (PlayerService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
 }

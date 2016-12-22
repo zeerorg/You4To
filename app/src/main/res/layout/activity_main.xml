@@ -13,8 +13,8 @@
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:text="Youtube URL"
+        android:inputType="textUri"
+        android:hint="Youtube URL"
         android:ems="10"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
@@ -22,7 +22,7 @@
         android:id="@+id/url" />
 
     <Button
-        android:hint="Submit"
+        android:text="Submit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/url"

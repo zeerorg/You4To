@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.rishabh.you4to">
+
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -15,7 +18,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PlayerActivity"></activity>
+        <activity android:name=".PlayerActivity" />
+
+        <service
+            android:name=".PlayerService"
+            android:enabled="true"
+            android:exported="true"/>
     </application>
 
 </manifest>
