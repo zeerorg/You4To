@@ -115,7 +115,6 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
             e.printStackTrace();
         }
 
-        //ConcatenatingMediaSource audioList = new ConcatenatingMediaSource(videoSource);
 // Prepare the player with the source.
         player.prepare(videoSource);
     }
@@ -124,6 +123,9 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         return playback;
     }
 
+    public SimpleExoPlayer getPlayer(){
+        return player;
+    }
 
     /** ExoPlayer events */
 
@@ -139,7 +141,6 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
             if(position == json.size()){
                 Log.e("Service", "Finished playback");
                 player.release();
-                //stopService(new Intent(this, PlayerService.class));
                 stopSelf();
             } else {
                 Log.e("Service", "Track Change");

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/add_link"
+            android:title="Add Link"
+            android:icon="@android:drawable/arrow_down_float"/>
+        <item
+            android:id="@+id/player"
+            android:title="Player"
+            android:icon="@android:drawable/ic_dialog_map"/>
+    </group>
+
+</menu>
