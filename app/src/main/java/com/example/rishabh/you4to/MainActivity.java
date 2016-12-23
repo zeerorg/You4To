@@ -16,6 +16,8 @@ import android.view.MenuItem;
 
 import org.json.JSONObject;
 
+import java.util.Iterator;
+
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
 
     private DrawerLayout drawer;
@@ -42,6 +44,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Intent intent = getIntent();
         Log.e("Intent", intent.toString());
+
+        for(String k: intent.getExtras().keySet()){
+            Log.e("Intent", k + " : " + intent.getExtras().getString(k));
+        }
+
         if(intent.hasExtra(Intent.EXTRA_TEXT)){
             navigationView.getMenu().getItem(1).setChecked(true);
             Bundle args = new Bundle();
@@ -101,12 +108,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fragmentManager.beginTransaction()
                     .replace(R.id.content_frame, fragment)
                     .commit();
-        } else {
+        } else if (id == R.id.player){
             Bundle args = new Bundle();
             args.putString(Intent.EXTRA_TEXT, "");
             FragmentManager fragmentManager = getSupportFragmentManager();
             Fragment fragment = new PlayerFragment();
             fragment.setArguments(args);
+            fragmentManager.beginTransaction()
+                    .replace(R.id.content_frame, fragment)
+                    .commit();
+        } else {
+            Bundle args = new Bundle();
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            Fragment fragment = new CurrentPlaylistFragment();
             fragmentManager.beginTransaction()
                     .replace(R.id.content_frame, fragment)
                     .commit();
@@ -118,5 +132,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public NavigationView getNavigationView(){
         return navigationView;
+    }
+
+    public interface ServiceCallbacks {
+        void doSomething(String textUpdate);
     }
 }

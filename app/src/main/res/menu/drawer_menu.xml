@@ -10,6 +10,10 @@
             android:id="@+id/player"
             android:title="Player"
             android:icon="@drawable/ic_headset"/>
+        <item
+            android:id="@+id/current_playlist"
+            android:title="Current Playlist"
+            android:icon="@drawable/ic_list"/>
     </group>
 
 </menu>

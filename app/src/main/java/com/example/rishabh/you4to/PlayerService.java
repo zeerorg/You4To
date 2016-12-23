@@ -1,5 +1,7 @@
 package com.example.rishabh.you4to;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
@@ -42,6 +44,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     private int position;
     private static boolean running = false;
     private static boolean playback = false;
+    private MainActivity.ServiceCallbacks serviceCallbacks;
 
     @Override
     public void onCreate() {
@@ -61,13 +64,27 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         player = ExoPlayerFactory.newSimpleInstance(this, trackSelector, loadControl);
         player.addListener(this);
         player.setPlayWhenReady(true);
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+        Notification notification = new Notification.Builder(this)
+                .setContentTitle("Youtube Playlist is running.")
+                .setContentText(getTitle())
+                .setSmallIcon(R.drawable.ic_headset)
+                .setContentIntent(pendingIntent)
+                .build();
+
+        startForeground(1, notification);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         Log.e("Service", "Ended");
+        stopForeground(true);
         player.release();
+
     }
 
     public PlayerService() {
@@ -95,6 +112,14 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         Log.e("Service", "SOng Added");
     }
 
+    public ArrayList<JSONObject> getJson(){
+        return json;
+    }
+
+    public void setPosition(int pos){
+        position = pos;
+    }
+
     public static boolean isRunning(){
         return running;
     }
@@ -112,6 +137,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         try {
             videoSource = new ExtractorMediaSource(Uri.parse(json.get(position).getString("download_music")),
                     dataSourceFactory, extractorsFactory, null, null);
+            //serviceCallbacks.doSomething(json.get(position).getString("title"));
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -137,6 +163,13 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         } catch (IndexOutOfBoundsException e) {
             return "Title";
         }
+    }
+
+    public void clearPlaylist (){
+        json.clear();
+        player.seekTo(0);
+        player.stop();
+        playback = false;
     }
 
     /** ExoPlayer events */
@@ -174,5 +207,9 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     @Override
     public void onPositionDiscontinuity() {
 
+    }
+
+    public void setCallbacks(MainActivity.ServiceCallbacks callbacks) {
+        serviceCallbacks = callbacks;
     }
 }

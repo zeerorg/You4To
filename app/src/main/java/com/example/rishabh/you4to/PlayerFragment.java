@@ -8,8 +8,8 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,8 +22,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.ui.PlaybackControlView;
-import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PlayerFragment extends Fragment
-        implements Response.Listener<String>, Response.ErrorListener, View.OnClickListener{
+        implements Response.Listener<String>, Response.ErrorListener, View.OnClickListener, MainActivity.ServiceCallbacks {
 
     private RequestQueue queue;
     private View v;
@@ -41,6 +41,11 @@ public class PlayerFragment extends Fragment
     private PlayerService mService;
     private boolean mBound = false;
     private TextView title;
+    private boolean retryConnect = false;
+
+    private String playlistUrl;
+    private String url;
+    private int playlistPosition = -1;
 
     @Nullable
     @Override
@@ -55,9 +60,19 @@ public class PlayerFragment extends Fragment
 
         queue = Volley.newRequestQueue(getContext());
 
-        // TODO: How data will be passed between fragments
-        if (!getArguments().getString(Intent.EXTRA_TEXT).equals(""))
-            queue.add(getServerData(getArguments().getString(Intent.EXTRA_TEXT)));
+        if (!getArguments().getString(Intent.EXTRA_TEXT).equals("")) {
+            url = getArguments().getString(Intent.EXTRA_TEXT);
+
+            if (url.contains("list=")) {
+                url = url.substring(url.indexOf("http"));
+                playlistUrl = url;
+                playlistPosition = 1;
+                addPlaylist(playlistUrl, playlistPosition);
+            } else {
+                playlistPosition = -1;
+                queue.add(getServerData(url));
+            }
+        }
         return v;
     }
 
@@ -79,6 +94,27 @@ public class PlayerFragment extends Fragment
         return jsonRequest;
     }
 
+    private void addPlaylist(String getUrl, int playlistPosition) {
+        final String url = getUrl;
+
+        final int pos = playlistPosition;
+
+        StringRequest jsonRequest = new StringRequest(Request.Method.POST,
+                "https://you4to.herokuapp.com/api/get/playlist",
+                this, this) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("link", url);
+                params.put("position", pos + "");
+                return params;
+            }
+        };
+        queue.add(jsonRequest);
+
+
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -88,7 +124,9 @@ public class PlayerFragment extends Fragment
         }
     }
 
-    /** Response.Listener override*/
+    /**
+     * Response.Listener override
+     */
     @Override
     public void onResponse(String response) {
         Log.e("Request complete", response);
@@ -105,18 +143,38 @@ public class PlayerFragment extends Fragment
             mService.startPlayback();
         }
         title.setText(mService.getTitle());
+
+        if (playlistPosition > 10) {  // Only curate top 10 songs from playlist
+            playlistPosition = -1;
+        }
+
+        if (playlistPosition != -1) {
+            playlistPosition += 1;
+            addPlaylist(playlistUrl, playlistPosition);
+        }
     }
 
-    /** Response.ErrorListener override*/
+    /**
+     * Response.ErrorListener override
+     */
     @Override
     public void onErrorResponse(VolleyError error) {
-        Log.e("Response", error.toString());
-        Snackbar.make(v, error.toString(), Snackbar.LENGTH_LONG)
-                .setAction("Retry", this)
-                .show();
+        if(!retryConnect){
+            if (playlistPosition != -1)
+                addPlaylist(playlistUrl, playlistPosition);
+            else
+                queue.add(getServerData(url));
+        } else {
+            Log.e("Response", error.toString());
+            Snackbar.make(v, error.toString(), Snackbar.LENGTH_LONG)
+                    .setAction("Retry", this)
+                    .show();
+        }
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
+
+        private SimpleExoPlayer player;
 
         @Override
         public void onServiceConnected(ComponentName className,
@@ -124,8 +182,10 @@ public class PlayerFragment extends Fragment
             PlayerService.LocalBinder binder = (PlayerService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            playerView.setPlayer(mService.getPlayer());
+            player = mService.getPlayer();
+            playerView.setPlayer(player);
             title.setText(mService.getTitle());
+            mService.setCallbacks(PlayerFragment.this);
         }
 
         @Override
@@ -137,5 +197,10 @@ public class PlayerFragment extends Fragment
     @Override
     public void onClick(View view) {
         queue.add(getServerData(getArguments().getString(Intent.EXTRA_TEXT)));
+    }
+
+    @Override
+    public void doSomething(String textUpdate) {
+        title.setText(textUpdate);
     }
 }
