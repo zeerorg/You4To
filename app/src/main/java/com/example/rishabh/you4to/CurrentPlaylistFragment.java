@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -28,7 +29,8 @@ import java.util.List;
  * Created by rishabh on 12/23/16.
  */
 
-public class CurrentPlaylistFragment extends Fragment implements MyRecyclerView.ListAdapter.ItemClickCallback{
+public class CurrentPlaylistFragment extends BaseFragment
+        implements MyRecyclerView.ListAdapter.ItemClickCallback{
 
     private RecyclerView recyclerView;
     private MyRecyclerView.ListAdapter adapter;
@@ -68,6 +70,13 @@ public class CurrentPlaylistFragment extends Fragment implements MyRecyclerView.
 //        startActivity(intent);
         mService.setPosition(p);
         mService.startPlayback();
+        adapter.getViews().get(p).getContainer().setBackgroundColor(Color.parseColor("#fdfdfd"));
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getContext().unbindService(mConnection);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {

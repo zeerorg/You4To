@@ -42,14 +42,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView = (NavigationView) findViewById(R.id.drawer_navigation);
         navigationView.setNavigationItemSelectedListener(this);
 
-        Intent intent = getIntent();
+        Intent intent = new Intent(this, PlayerService.class);
+        startService(intent);
+
+        onNewIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
         Log.e("Intent", intent.toString());
-
-        for(String k: intent.getExtras().keySet()){
-            Log.e("Intent", k + " : " + intent.getExtras().getString(k));
-        }
-
         if(intent.hasExtra(Intent.EXTRA_TEXT)){
+
+            for(String k: intent.getExtras().keySet()){
+                Log.e("Intent", k + " : " + intent.getExtras().getString(k));
+            }
             navigationView.getMenu().getItem(1).setChecked(true);
             Bundle args = new Bundle();
             args.putString(Intent.EXTRA_TEXT, intent.getStringExtra(Intent.EXTRA_TEXT));
@@ -57,7 +65,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Fragment fragment = new PlayerFragment();
             fragment.setArguments(args);
             fragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, fragment)
+                    .replace(R.id.content_frame, fragment, "PlayerFragment")
                     .commit();
         }
         else {
@@ -106,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Bundle args = new Bundle();
             FragmentManager fragmentManager = getSupportFragmentManager();
             fragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, fragment)
+                    .replace(R.id.content_frame, fragment, "AddLinkFragment")
                     .commit();
         } else if (id == R.id.player){
             Bundle args = new Bundle();
@@ -115,14 +123,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Fragment fragment = new PlayerFragment();
             fragment.setArguments(args);
             fragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, fragment)
+                    .replace(R.id.content_frame, fragment, "PlayerFragment")
                     .commit();
         } else {
             Bundle args = new Bundle();
             FragmentManager fragmentManager = getSupportFragmentManager();
             Fragment fragment = new CurrentPlaylistFragment();
             fragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, fragment)
+                    .replace(R.id.content_frame, fragment, "CurrentPlaylistFragment")
                     .commit();
         }
         item.setChecked(true);

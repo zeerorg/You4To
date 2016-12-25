@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -31,7 +32,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PlayerFragment extends Fragment
+public class PlayerFragment extends BaseFragment
         implements Response.Listener<String>, Response.ErrorListener, View.OnClickListener, MainActivity.ServiceCallbacks {
 
     private RequestQueue queue;
@@ -73,6 +74,7 @@ public class PlayerFragment extends Fragment
                 queue.add(getServerData(url));
             }
         }
+
         return v;
     }
 
@@ -143,6 +145,13 @@ public class PlayerFragment extends Fragment
             mService.startPlayback();
         }
         title.setText(mService.getTitle());
+        try {
+            Toast.makeText(getContext(), "Added "+json.getString("title"), Toast.LENGTH_LONG).show();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("PlayerFragment", "I don't know why srsly... " + e.toString());
+        }
 
         if (playlistPosition > 10) {  // Only curate top 10 songs from playlist
             playlistPosition = -1;
@@ -186,6 +195,7 @@ public class PlayerFragment extends Fragment
             playerView.setPlayer(player);
             title.setText(mService.getTitle());
             mService.setCallbacks(PlayerFragment.this);
+
         }
 
         @Override

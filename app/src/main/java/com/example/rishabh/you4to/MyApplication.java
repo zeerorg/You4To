@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
 /**
  * Created by rishabh on 12/22/16.
@@ -21,14 +22,17 @@ public class MyApplication extends Application {
         super.onCreate();
         Intent intent = new Intent(this, PlayerService.class);
         //startService(intent);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        //bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
     }
 
     @Override
     public void onTerminate() {
         super.onTerminate();
-        unbindService(mConnection);
+        Log.e("MyApplication", "Application terminated");
+//        mService.stopForeground(true);
+//        mService.stopSelf();
+//        unbindService(mConnection);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {

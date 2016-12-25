@@ -19,6 +19,7 @@ public class MyRecyclerView {
 
         private LayoutInflater inflater;
         private List<ListItem> list;
+        private List<ListHolder> views;
 
         public void setItemClickCallback(ItemClickCallback itemClickCallback) {
             this.itemClickCallback = itemClickCallback;
@@ -37,12 +38,15 @@ public class MyRecyclerView {
         public ListAdapter(List<ListItem> list, Context context){
             this.inflater = LayoutInflater.from(context);
             this.list = list;
+            this.views = new ArrayList<>();
         }
 
         @Override
         public ListHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = inflater.inflate(R.layout.card_item, parent, false);
-            return new ListHolder(view);
+            ListHolder h = new ListHolder(view);
+            this.views.add(h);
+            return h;
         }
 
         @Override
@@ -57,6 +61,10 @@ public class MyRecyclerView {
             return list.size();
         }
 
+        public List<ListHolder> getViews(){
+            return this.views;
+        }
+
         class ListHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
             private TextView text;
@@ -69,6 +77,10 @@ public class MyRecyclerView {
 
                 container = itemView.findViewById(R.id.card_root);
                 container.setOnClickListener(this);
+            }
+
+            public View getContainer(){
+                return container;
             }
 
             @Override

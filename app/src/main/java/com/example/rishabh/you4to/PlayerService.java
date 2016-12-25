@@ -45,6 +45,9 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
     private static boolean running = false;
     private static boolean playback = false;
     private MainActivity.ServiceCallbacks serviceCallbacks;
+    private Notification.Builder notification;
+
+    public final int NOTIFICATION_FLAG = 4325;
 
     @Override
     public void onCreate() {
@@ -68,14 +71,20 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
-        Notification notification = new Notification.Builder(this)
+        notification = new Notification.Builder(this)
                 .setContentTitle("Youtube Playlist is running.")
                 .setContentText(getTitle())
                 .setSmallIcon(R.drawable.ic_headset)
-                .setContentIntent(pendingIntent)
-                .build();
+                .setContentIntent(pendingIntent);
 
-        startForeground(1, notification);
+        startForeground(NOTIFICATION_FLAG, notification.build());
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        Log.e("Service", "Task Removed");
+        onDestroy();
     }
 
     @Override
@@ -84,6 +93,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         Log.e("Service", "Ended");
         stopForeground(true);
         player.release();
+        stopSelf();
 
     }
 
@@ -126,6 +136,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
 
     public void startPlayback(){
         playback = true;
+
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
 // Produces DataSource instances through which media data is loaded.
         DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(this,
@@ -137,13 +148,15 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         try {
             videoSource = new ExtractorMediaSource(Uri.parse(json.get(position).getString("download_music")),
                     dataSourceFactory, extractorsFactory, null, null);
-            //serviceCallbacks.doSomething(json.get(position).getString("title"));
+            serviceCallbacks.doSomething(json.get(position).getString("title"));
+            notification.setContentText(json.get(position).getString("title"));
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
 // Prepare the player with the source.
         player.prepare(videoSource);
+        startForeground(NOTIFICATION_FLAG, notification.build());
     }
 
     public static boolean isPlaying(){
@@ -170,6 +183,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
         player.seekTo(0);
         player.stop();
         playback = false;
+        stopForeground(true);
     }
 
     /** ExoPlayer events */
@@ -187,6 +201,7 @@ public class PlayerService extends Service implements ExoPlayer.EventListener {
                 Log.e("Service", "Finished playback");
                 playback = false;
                 player.stop();
+                stopForeground(true);
             } else {
                 Log.e("Service", "Track Change");
                 startPlayback();

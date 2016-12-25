@@ -12,7 +12,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
-public class AddLinkFragment extends Fragment implements View.OnClickListener {
+public class AddLinkFragment extends BaseFragment
+        implements View.OnClickListener {
 
     private EditText url;
     private Button submit;
